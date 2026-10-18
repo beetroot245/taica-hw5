@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emoji 記憶翻牌</title>
+  <style>
+    :root {
+      --ink: #51485f;
+      --muted: #887f96;
+      --pink: #ffdce8;
+      --pink-strong: #f29fbd;
+      --lavender: #e8e0ff;
+      --mint: #d9f4e7;
+      --cream: #fffaf1;
+      --white: #ffffff;
+      --shadow: 0 12px 32px rgba(108, 83, 126, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Nunito", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 8% 12%, rgba(255, 220, 232, .78), transparent 28%),
+        radial-gradient(circle at 90% 18%, rgba(220, 239, 255, .85), transparent 27%),
+        radial-gradient(circle at 80% 90%, rgba(217, 244, 231, .8), transparent 28%),
+        var(--cream);
+      padding: 24px 16px 40px;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      width: min(100%, 900px);
+      margin: 0 auto;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .9rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: #8d769d;
+    }
+
+    .brand-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      background: white;
+      box-shadow: var(--shadow);
+      font-size: 1.35rem;
+    }
+
+    .tiny-pill {
+      background: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: #8d769d;
+      font-size: .82rem;
+      font-weight: 700;
+    }
+
+    .panel {
+      background: rgba(255,255,255,.82);
+      border: 1px solid rgba(255,255,255,.95);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: clamp(20px, 4vw, 36px);
+      backdrop-filter: blur(10px);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; animation: appear .35s ease both; }
+
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero { text-align: center; }
+    .hero-emoji {
+      font-size: clamp(3rem, 8vw, 4.8rem);
+      line-height: 1.2;
+      margin: 4px 0 10px;
+      filter: drop-shadow(0 7px 8px rgba(242,159,189,.2));
+    }
+
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 10px;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      letter-spacing: .02em;
+    }
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.8;
+      margin: 0 auto;
+      max-width: 480px;
+    }
+
+    .difficulty-title {
+      margin: 30px 0 14px;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .difficulty-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .difficulty-card {
+      border: 2px solid transparent;
+      border-radius: 22px;
+      background: #fff;
+      padding: 20px 12px;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      box-shadow: 0 6px 18px rgba(108,83,126,.07);
+    }
+    .difficulty-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(108,83,126,.12);
+      border-color: var(--pink-strong);
+    }
+    .difficulty-card:focus-visible, button:focus-visible, .memory-card:focus-visible {
+      outline: 3px solid #9d8ae8;
+      outline-offset: 3px;
+    }
+    .difficulty-emoji { display: block; font-size: 2rem; margin-bottom: 8px; }
+    .difficulty-name { display: block; font-weight: 900; font-size: 1.08rem; margin-bottom: 4px; }
+    .difficulty-detail { color: var(--muted); font-size: .86rem; }
+
+    .howto {
+      margin-top: 22px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: #fff7fb;
+      color: #88778f;
+      font-size: .9rem;
+      line-height: 1.8;
+      text-align: left;
+    }
+
+    .game-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+    .game-heading h2 { margin-bottom: 5px; font-size: clamp(1.35rem, 4vw, 1.8rem); }
+    .game-heading p { margin: 0; color: var(--muted); font-size: .9rem; }
+    .secondary-button, .primary-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 17px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease;
+    }
+    .secondary-button { background: #f3efff; color: #76649a; }
+    .primary-button { background: linear-gradient(135deg, #f5a9c5, #c7b8ff); color: #fff; box-shadow: 0 7px 16px rgba(195,155,217,.25); }
+    .secondary-button:hover, .primary-button:hover { transform: translateY(-2px); filter: brightness(1.02); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .stat {
+      padding: 14px 10px;
+      text-align: center;
+      background: #fff9fd;
+      border: 1px solid #f8edf5;
+      border-radius: 18px;
+    }
+    .stat-label { display: block; color: var(--muted); font-size: .82rem; margin-bottom: 5px; }
+    .stat-value { display: block; font-size: clamp(1.2rem, 3vw, 1.6rem); font-weight: 900; font-variant-numeric: tabular-nums; }
+
+    .progress-track {
+      height: 8px;
+      background: #f0eafa;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: -7px 0 22px;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #f5a9c5, #b9a8ff, #9ee2c3);
+      transition: width .3s ease;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(7px, 1.8vw, 14px);
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .memory-card {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      min-width: 0;
+      border: 0;
+      border-radius: clamp(10px, 2vw, 18px);
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      perspective: 700px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .card-inner {
+      position: absolute;
+      inset: 0;
+      display: block;
+      border-radius: inherit;
+      transform-style: preserve-3d;
+      transition: transform .38s cubic-bezier(.2,.7,.2,1);
+    }
+    .memory-card.is-flipped .card-inner,
+    .memory-card.is-matched .card-inner { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border-radius: inherit;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .card-back {
+      color: #9d86c8;
+      font-size: clamp(1.3rem, 4vw, 2.2rem);
+      font-weight: 900;
+      background: linear-gradient(145deg, #f1eaff, #ffe6f0);
+      border: 2px solid #fff;
+      box-shadow: 0 5px 0 #e2d5f1, 0 8px 14px rgba(119,91,143,.08);
+      transition: background .2s ease, box-shadow .2s ease;
+    }
+    .memory-card:hover:not(.is-flipped):not(.is-matched) .card-back {
+      background: linear-gradient(145deg, #e7f8ef, #ffe6f0);
+      box-shadow: 0 7px 0 #d8c9ee, 0 10px 16px rgba(119,91,143,.12);
+    }
+    .card-front {
+      transform: rotateY(180deg);
+      background: #fff;
+      border: 2px solid #f4dbe8;
+      box-shadow: 0 5px 14px rgba(119,91,143,.08);
+      font-size: clamp(1.55rem, 5.5vw, 3rem);
+    }
+    .memory-card.is-matched .card-front {
+      background: #e8f8ef;
+      border-color: #b9e9d0;
+      animation: match-pop .35s ease;
+    }
+    .memory-card:disabled { cursor: default; }
+    @keyframes match-pop {
+      0% { transform: rotateY(180deg) scale(.92); }
+      60% { transform: rotateY(180deg) scale(1.08); }
+      100% { transform: rotateY(180deg) scale(1); }
+    }
+
+    .game-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .hint {
+      min-height: 24px;
+      margin: 15px 0 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(70, 55, 83, .34);
+      backdrop-filter: blur(7px);
+      z-index: 10;
+    }
+    .modal-backdrop.show { display: flex; animation: appear .25s ease both; }
+    .result-modal {
+      width: min(100%, 430px);
+      text-align: center;
+      background: #fffdfd;
+      border: 1px solid white;
+      border-radius: 30px;
+      padding: 30px 24px;
+      box-shadow: 0 24px 70px rgba(55,37,69,.22);
+      animation: celebration .5s cubic-bezier(.2,.8,.2,1) both;
+    }
+    @keyframes celebration {
+      0% { transform: scale(.86) translateY(12px); opacity: .3; }
+      70% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .result-emoji { font-size: 4rem; margin-bottom: 8px; }
+    .result-modal h2 { margin-bottom: 8px; font-size: 1.9rem; }
+    .result-modal p { color: var(--muted); line-height: 1.7; }
+    .result-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 22px 0;
+    }
+    .result-stat {
+      padding: 15px 8px;
+      border-radius: 17px;
+      background: #fff3f8;
+    }
+    .result-stat span { display: block; color: var(--muted); font-size: .82rem; margin-bottom: 4px; }
+    .result-stat strong { font-size: 1.35rem; }
+    .result-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+    .footer-note {
+      text-align: center;
+      color: #a69aaf;
+      font-size: .78rem;
+      margin: 18px 0 0;
+    }
+
+    @media (max-width: 540px) {
+      body { padding: 14px 10px 28px; }
+      .topline { margin-bottom: 12px; }
+      .panel { border-radius: 22px; padding: 20px 14px; }
+      .difficulty-list { gap: 8px; }
+      .difficulty-card { padding: 16px 5px; border-radius: 17px; }
+      .difficulty-emoji { font-size: 1.6rem; }
+      .difficulty-name { font-size: .96rem; }
+      .difficulty-detail { font-size: .74rem; }
+      .stats { gap: 7px; }
+      .stat { padding: 11px 4px; border-radius: 14px; }
+      .stat-label { font-size: .74rem; }
+      .board { gap: 7px; }
+      .card-front { font-size: clamp(1.4rem, 7vw, 2.5rem); }
+      .game-header { margin-bottom: 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topline">
+      <div class="brand"><span class="brand-icon">🌷</span><span>小小記憶研究所</span></div>
+      <div class="tiny-pill">放輕鬆，慢慢找 ✨</div>
+    </div>
+
+    <!-- 難度選擇畫面 -->
+    <section id="menuScreen" class="screen active panel hero" aria-labelledby="mainTitle">
+      <div class="hero-emoji" aria-hidden="true">🧸💭</div>
+      <h1 id="mainTitle">Emoji 記憶翻牌</h1>
+      <p class="subtitle">把可愛的表情配成一對吧！<br>記住它們的位置，慢慢找到所有好朋友。</p>
+
+      <h2 class="difficulty-title">今天想挑戰哪個難度？</h2>
+      <div class="difficulty-list">
+        <button class="difficulty-card" data-pairs="8" aria-label="開始簡單模式，8 對牌">
+          <span class="difficulty-emoji">🌱</span>
+          <span class="difficulty-name">簡單</span>
+          <span class="difficulty-detail">8 對・16 張</span>
+        </button>
+        <button class="difficulty-card" data-pairs="12" aria-label="開始普通模式，12 對牌">
+          <span class="difficulty-emoji">🌼</span>
+          <span class="difficulty-name">普通</span>
+          <span class="difficulty-detail">12 對・24 張</span>
+        </button>
+        <button class="difficulty-card" data-pairs="16" aria-label="開始困難模式，16 對牌">
+          <span class="difficulty-emoji">🌈</span>
+          <span class="difficulty-name">困難</span>
+          <span class="difficulty-detail">16 對・32 張</span>
+        </button>
+      </div>
+
+      <div class="howto">
+        <strong>🍓 小小遊戲規則</strong><br>
+        ① 一次翻開兩張牌，找出相同的表情。<br>
+        ② 如果不一樣，等一下下就會自動蓋回。<br>
+        ③ 沒有時間限制，配對全部成功就過關！
+      </div>
+    </section>
+
+    <!-- 遊戲畫面 -->
+    <section id="gameScreen" class="screen panel" aria-labelledby="gameTitle">
+      <div class="game-header">
+        <div class="game-heading">
+          <h2 id="gameTitle">🌼 普通模式</h2>
+          <p>找到每一對表情朋友吧！</p>
+        </div>
+        <button id="menuButton" class="secondary-button">← 難度選單</button>
+      </div>
+
+      <div class="stats" aria-label="遊戲統計">
+        <div class="stat">
+          <span class="stat-label">⏰ 遊玩時間</span>
+          <strong id="timer" class="stat-value">00:00</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">🔄 配對嘗試</span>
+          <strong id="moves" class="stat-value">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">💗 配對進度</span>
+          <strong id="progress" class="stat-value">0 / 12</strong>
+        </div>
+      </div>
+
+      <div class="progress-track" role="progressbar" aria-label="配對進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressTrack">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+
+      <div id="board" class="board" aria-label="記憶翻牌區"></div>
+
+      <p id="hint" class="hint" aria-live="polite">先翻開一張牌，開始尋找配對吧！</p>
+      <div class="game-footer">
+        <button id="restartButton" class="primary-button">↻ 重新洗牌</button>
+      </div>
+    </section>
+
+    <p class="footer-note">每一次嘗試，都是一次小小的進步</p>
+  </main>
+
+  <!-- 勝利結果視窗：完成後保留本局結果，直到玩家選擇下一步 -->
+  <div id="resultBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="result-modal">
+      <div class="result-emoji" aria-hidden="true">🎉🐻🎉</div>
+      <h2 id="resultTitle">太棒了，全部配對成功！</h2>
+      <p>你找到所有表情朋友了！<br>快看看這一局的成果吧。</p>
+      <div class="result-stats">
+        <div class="result-stat"><span>⏰ 完成時間</span><strong id="finalTime">00:00</strong></div>
+        <div class="result-stat"><span>🔄 配對嘗試</span><strong id="finalMoves">0 次</strong></div>
+        <div class="result-stat" style="grid-column: 1 / -1;"><span>💗 完成配對</span><strong id="finalPairs">8 / 8 對</strong></div>
+      </div>
+      <div class="result-actions">
+        <button id="playAgainButton" class="primary-button">再玩一次 ✨</button>
+        <button id="resultMenuButton" class="secondary-button">返回難度選單</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 遊戲會用到的 Emoji。每個表情會複製成兩張，讓玩家配對。
+    const emojiList = [
+      "😀", "😂", "🥹", "😍", "😎", "🤗", "😴", "🥳",
+      "😋", "🤩", "😇", "🙃", "😺", "🐸", "🐼", "🦊"
+    ];
+
+    // 將 HTML 元素先取出，後續更新畫面時就能直接使用。
+    const menuScreen = document.getElementById("menuScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const gameTitle = document.getElementById("gameTitle");
+    const board = document.getElementById("board");
+    const timerText = document.getElementById("timer");
+    const movesText = document.getElementById("moves");
+    const progressText = document.getElementById("progress");
+    const progressFill = document.getElementById("progressFill");
+    const progressTrack = document.getElementById("progressTrack");
+    const hint = document.getElementById("hint");
+    const resultBackdrop = document.getElementById("resultBackdrop");
+    const finalTime = document.getElementById("finalTime");
+    const finalMoves = document.getElementById("finalMoves");
+    const finalPairs = document.getElementById("finalPairs");
+
+    // 目前這一局的遊戲狀態。
+    let totalPairs = 8;
+    let matchedPairs = 0;
+    let moves = 0;
+    let seconds = 0;
+    let firstCard = null;
+    let secondCard = null;
+    let isChecking = false;
+    let isGameRunning = false;
+    let timerInterval = null;
+    let mismatchTimeout = null;
+
+    // 把秒數轉成「分:秒」，例如 125 秒會顯示成 02:05。
+    function formatTime(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const secondsPart = totalSeconds % 60;
+      return String(minutes).padStart(2, "0") + ":" + String(secondsPart).padStart(2, "0");
+    }
+
+    // Fisher-Yates 洗牌：將陣列中的項目隨機交換位置。
+    function shuffleCards(cards) {
+      for (let i = cards.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+        const temporary = cards[i];
+        cards[i] = cards[randomIndex];
+        cards[randomIndex] = temporary;
+      }
+      return cards;
+    }
+
+    // 開始計時；每秒更新一次畫面上的時間。
+    function startTimer() {
+      stopTimer();
+      timerInterval = setInterval(function () {
+        if (isGameRunning) {
+          seconds++;
+          timerText.textContent = formatTime(seconds);
+        }
+      }, 1000);
+    }
+
+    // 停止計時器，避免重複計時。
+    function stopTimer() {
+      if (timerInterval !== null) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // 清除錯誤配對等待蓋回的計時，避免舊的計時影響新的一局。
+    function clearMismatchTimeout() {
+      if (mismatchTimeout !== null) {
+        clearTimeout(mismatchTimeout);
+        mismatchTimeout = null;
+      }
+    }
+
+    // 根據目前配對進度，更新數字與進度條。
+    function updateStats() {
+      movesText.textContent = moves;
+      progressText.textContent = matchedPairs + " / " + totalPairs;
+      const percentage = (matchedPairs / totalPairs) * 100;
+      progressFill.style.width = percentage + "%";
+      progressTrack.setAttribute("aria-valuenow", String(Math.round(percentage)));
+    }
+
+    // 產生牌面：選出需要的 Emoji，每個複製兩份，再隨機洗牌。
+    function createBoard() {
+      const selectedEmojis = emojiList.slice(0, totalPairs);
+      let cards = [];
+
+      selectedEmojis.forEach(function (emoji, index) {
+        cards.push({ emoji: emoji, pairId: index });
+        cards.push({ emoji: emoji, pairId: index });
+      });
+
+      shuffleCards(cards);
+      board.innerHTML = "";
+
+      // 困難模式牌比較多，使用較小的間距；所有模式都維持四欄。
+      board.style.gridTemplateColumns = "repeat(4, minmax(0, 1fr))";
+
+      cards.forEach(function (cardData, index) {
+        const cardButton = document.createElement("button");
+        cardButton.type = "button";
+        cardButton.className = "memory-card";
+        cardButton.dataset.pairId = String(cardData.pairId);
+        cardButton.dataset.emoji = cardData.emoji;
+        cardButton.setAttribute("aria-label", "第 " + (index + 1) + " 張未翻開的牌");
+
+        const inner = document.createElement("span");
+        inner.className = "card-inner";
+
+        const backFace = document.createElement("span");
+        backFace.className = "card-face card-back";
+        backFace.textContent = "?";
+        backFace.setAttribute("aria-hidden", "true");
+
+        const frontFace = document.createElement("span");
+        frontFace.className = "card-face card-front";
+        frontFace.textContent = cardData.emoji;
+        frontFace.setAttribute("aria-hidden", "true");
+
+        inner.appendChild(backFace);
+        inner.appendChild(frontFace);
+        cardButton.appendChild(inner);
+        cardButton.addEventListener("click", function () {
+          handleCardClick(cardButton);
+        });
+        board.appendChild(cardButton);
+      });
+    }
+
+    // 玩家點擊卡片時，先檢查目前是否允許翻牌。
+    function handleCardClick(card) {
+      // 遊戲結束、正在判斷兩張牌，或這張牌已經翻開／配對，都不處理。
+      if (!isGameRunning || isChecking || card.classList.contains("is-flipped") || card.classList.contains("is-matched")) {
+        return;
+      }
+
+      card.classList.add("is-flipped");
+      card.setAttribute("aria-label", "已翻開的表情 " + card.dataset.emoji);
+
+      // 第一張牌先記錄起來，等待玩家選第二張。
+      if (firstCard === null) {
+        firstCard = card;
+        hint.textContent = "再翻開一張牌，看看是不是一對！";
+        return;
+      }
+
+      // 第二張牌不能是同一張；上面的狀態檢查也會阻止重複點擊。
+      secondCard = card;
+      moves++;
+      updateStats();
+
+      // 開始判斷時鎖定操作，避免玩家快速連點造成狀態錯亂。
+      isChecking = true;
+
+      if (firstCard.dataset.pairId === secondCard.dataset.pairId) {
+        // 配對成功：保留兩張牌，並讓它們不能再被點擊。
+        firstCard.classList.add("is-matched");
+        secondCard.classList.add("is-matched");
+        firstCard.disabled = true;
+        secondCard.disabled = true;
+        firstCard.setAttribute("aria-label", "已配對 " + firstCard.dataset.emoji);
+        secondCard.setAttribute("aria-label", "已配對 " + secondCard.dataset.emoji);
+
+        matchedPairs++;
+        updateStats();
+        hint.textContent = "答對了！找到一對好朋友 💗";
+
+        firstCard = null;
+        secondCard = null;
+        isChecking = false;
+
+        // 所有配對都完成時，結束遊戲並顯示本局結果。
+        if (matchedPairs === totalPairs) {
+          finishGame();
+        }
+      } else {
+        // 配對失敗：保持顯示約 1 秒，再把兩張牌蓋回。
+        hint.textContent = "差一點點！記住它們的位置喔 🌷";
+        mismatchTimeout = setTimeout(function () {
+          firstCard.classList.remove("is-flipped");
+          secondCard.classList.remove("is-flipped");
+          firstCard.setAttribute("aria-label", "未翻開的牌");
+          secondCard.setAttribute("aria-label", "未翻開的牌");
+
+          firstCard = null;
+          secondCard = null;
+          isChecking = false;
+          mismatchTimeout = null;
+          hint.textContent = "繼續找找看，下一對可能就在附近！";
+        }, 1000);
+      }
+    }
+
+    // 開始一局新的遊戲，重設計時、配對數與翻牌次數。
+    function startGame(pairCount) {
+      clearMismatchTimeout();
+      stopTimer();
+      resultBackdrop.classList.remove("show");
+
+      totalPairs = pairCount;
+      matchedPairs = 0;
+      moves = 0;
+      seconds = 0;
+      firstCard = null;
+      secondCard = null;
+      isChecking = false;
+      isGameRunning = true;
+
+      const difficultyName = pairCount === 8 ? "簡單" : pairCount === 12 ? "普通" : "困難";
+      const flower = pairCount === 8 ? "🌱" : pairCount === 12 ? "🌼" : "🌈";
+      gameTitle.textContent = flower + " " + difficultyName + "模式";
+      timerText.textContent = "00:00";
+      hint.textContent = "先翻開一張牌，開始尋找配對吧！";
+
+      updateStats();
+      createBoard();
+      menuScreen.classList.remove("active");
+      gameScreen.classList.add("active");
+      startTimer();
+    }
+
+    // 全部配對成功：停止計時，將結果放進勝利視窗。
+    function finishGame() {
+      isGameRunning = false;
+      stopTimer();
+      clearMismatchTimeout();
+
+      finalTime.textContent = formatTime(seconds);
+      finalMoves.textContent = moves + " 次";
+      finalPairs.textContent = matchedPairs + " / " + totalPairs + " 對";
+      hint.textContent = "全部配對成功，太厲害了！🎉";
+      resultBackdrop.classList.add("show");
+      document.getElementById("playAgainButton").focus();
+    }
+
+    // 返回難度選單，並停止目前遊戲的計時與等待動作。
+    function returnToMenu() {
+      isGameRunning = false;
+      stopTimer();
+      clearMismatchTimeout();
+      resultBackdrop.classList.remove("show");
+      gameScreen.classList.remove("active");
+      menuScreen.classList.add("active");
+    }
+
+    // 難度按鈕：依照按鈕上的牌對數開始新遊戲。
+    document.querySelectorAll(".difficulty-card").forEach(function (button) {
+      button.addEventListener("click", function () {
+        startGame(Number(button.dataset.pairs));
+      });
+    });
+
+    // 綁定重新開始、返回選單與勝利畫面的按鈕。
+    document.getElementById("restartButton").addEventListener("click", function () {
+      startGame(totalPairs);
+    });
+    document.getElementById("menuButton").addEventListener("click", returnToMenu);
+    document.getElementById("playAgainButton").addEventListener("click", function () {
+      startGame(totalPairs);
+    });
+    document.getElementById("resultMenuButton").addEventListener("click", returnToMenu);
+
+    // 按下 Esc 可以關閉勝利視窗並返回難度選單。
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && resultBackdrop.classList.contains("show")) {
+        returnToMenu();
+      }
+    });
+  </script>
+</body>
+</html>
